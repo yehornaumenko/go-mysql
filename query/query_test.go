@@ -650,3 +650,17 @@ func TestFingerprintWithNumberInDbName(t *testing.T) {
 		query.Fingerprint(q),
 	)
 }
+
+func TestFingerprintMaxExecTimeWithBackticks(t *testing.T) {
+	q := "/* campaign-areas-5775b87c5d-fczwg|@campaigns-platform|campaign-areas|internal|/internal/listAreas|prelive-campaignareas */\n\n            SELECT /*+ MAX_EXECUTION_TIME(7995) */ `id`, `domain`, `city_id`, `name`, `polygon`, `state`, `translations` AS `translations`\n            FROM `area`\n            WHERE `state` IN ('active', 'disabled', 'removed') AND `domain` = 'rides_and_rental'"
+	expectedFingerprint := "select `id`, `domain`, `city_id`, `name`, `polygon`, `state`, `translations` as `translations` from `area` where `state` in(?+) and `domain` = ?"
+
+	assert.Equal(t, expectedFingerprint, query.Fingerprint(q))
+}
+
+func TestFingerprintMaxExecTimeNoBackticks(t *testing.T) {
+	q := "/* campaign-areas-5775b87c5d-fczwg|@campaigns-platform|campaign-areas|internal|/internal/listAreas|prelive-campaignareas */\n\n            SELECT /*+ MAX_EXECUTION_TIME(7995) */ id, domain, city_id, name, polygon, state, translations AS translations\n            FROM area\n            WHERE state IN ('active', 'disabled', 'removed') AND domain = 'rides_and_rental'"
+	expectedFingerprint := "select id, domain, city_id, name, polygon, state, translations as translations from area where state in(?+) and domain = ?"
+
+	assert.Equal(t, expectedFingerprint, query.Fingerprint(q))
+}

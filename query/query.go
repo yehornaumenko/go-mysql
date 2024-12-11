@@ -83,6 +83,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"regexp"
 )
 
 const (
@@ -149,6 +150,7 @@ var ReplaceNumbersInWords = false
 // example, "ORDER BY col ASC" is the same as "ORDER BY col", so "ASC" in the
 // fingerprint is removed.
 func Fingerprint(q string) string {
+	q = removeMaxExecutionTimeHint(q)
 	q += " " // need range to run off end of original query
 	prevWord := ""
 	f := make([]byte, len(q))
@@ -815,4 +817,10 @@ func Id(fingerprint string) string {
 	io.WriteString(id, fingerprint)
 	h := fmt.Sprintf("%x", id.Sum(nil))
 	return strings.ToUpper(h[16:32])
+}
+
+// RemoveMaxExecutionTimeHint removes the MAX_EXECUTION_TIME hint from a SQL query string
+func removeMaxExecutionTimeHint(query string) string {
+	re := regexp.MustCompile(`(.*)\/\*\+ (?i:MAX_EXECUTION_TIME)\(\d+\) \*\/ (.*)`)
+	return re.ReplaceAllString(query, `$1$2`)
 }
